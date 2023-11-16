@@ -1,50 +1,10 @@
 import yfinance as yf
 import pandas as pd
+from textblob import TextBlob
 
-# Function to fetch key ratios for a given ticker
-def fetch_ratios(ticker):
-    stock = yf.Ticker(ticker)
-    info = stock.info
-    key_ratios = {
-        'P/E Ratio': info.get('trailingPE', 'N/A'),
-        'Dividend Yield': info.get('dividendYield', 'N/A'),
-        'Price-to-Book': info.get('priceToBook', 'N/A'),
-        'Beta': info.get('beta', 'N/A'),
-        'Market Cap': info.get('marketCap', 'N/A'),
-        'Enterprise Value': info.get('enterpriseValue', 'N/A'),
-        'Profit Margin': info.get('profitMargins', 'N/A'),
-        'Operating Margin': info.get('operatingMargins', 'N/A'),
-        'Return on Assets': info.get('returnOnAssets', 'N/A'),
-        'Return on Equity': info.get('returnOnEquity', 'N/A'),
-        'Revenue Growth': info.get('revenueGrowth', 'N/A'),
-        'Earnings Growth': info.get('earningsGrowth', 'N/A'),
-        'Total Cash': info.get('totalCash', 'N/A'),
-        'Total Debt': info.get('totalDebt', 'N/A'),
-        'Total Revenue': info.get('totalRevenue', 'N/A'),
-        'Book Value': info.get('bookValue', 'N/A'),
-        'Operating Cash Flow': info.get('operatingCashflow', 'N/A'),
-        'Fifty-day Moving Average': info.get('fiftyDayAverage', 'N/A'),
-        'Two-hundred-day Moving Average': info.get('twoHundredDayAverage', 'N/A'),
-        'Shares Outstanding': info.get('sharesOutstanding', 'N/A'),
-        'Shares Short': info.get('sharesShort', 'N/A'),
-        'Short Ratio': info.get('shortRatio', 'N/A'),
-        'Short Percentage of Float': info.get('shortPercentOfFloat', 'N/A'),
-        'Forward P/E Ratio': info.get('forwardPE', 'N/A'),
-        'Price-to-Sales': info.get('priceToSalesTrailing12Months', 'N/A'),
-        'Forward Price-to-Sales': info.get('forwardEps', 'N/A'),
-        'PEG Ratio': info.get('pegRatio', 'N/A'),
-        'Enterprise-to-Revenue': info.get('enterpriseToRevenue', 'N/A'),
-        'Enterprise-to-EBITDA': info.get('enterpriseToEbitda', 'N/A'),
-        '52-Week Change': info.get('52WeekChange', 'N/A'),
-        'SandP52-Week Change': info.get('SandP52WeekChange', 'N/A'),
-        'Last Dividend Value': info.get('lastDividendValue', 'N/A'),
-        'Regular Market Day Low': info.get('regularMarketDayLow', 'N/A'),
-        'Regular Market Volume': info.get('regularMarketVolume', 'N/A'),
-        'Regular Market Previous Close': info.get('regularMarketPreviousClose', 'N/A'),
-        'Regular Market Open': info.get('regularMarketOpen', 'N/A'),
-        'Average Daily Volume 10 Day': info.get('averageDailyVolume10Day', 'N/A'),
-    }
-    return key_ratios
+def analyze_sentiment(text):
+    analysis = TextBlob(text)
+    return analysis.sentiment
 
 # Function to calculate RSI for given data and window
 def calculate_RSI(data, window):

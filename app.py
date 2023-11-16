@@ -1,39 +1,46 @@
+from datetime import date
 import dash
 from dash import dcc, html, Input, Output
-from dash import dash_table
+from dash.dependencies import State
 import yfinance as yf
 import pandas as pd
 import plotly.graph_objs as go
 
-# Import the utility functions from the utils module
-from utils import (
-    fetch_ratios, calculate_RSI, calculate_MACD, 
-    validate_ticker, validate_date_range
-)
+# Import the utility functions from the utils module and Sec module
+from sec import fetch_sec_filings
+
+from utils import (calculate_RSI, calculate_MACD, validate_date_range, analyze_sentiment)
 
 external_stylesheets = ['https://fonts.googleapis.com/css?family=Roboto&display=swap']
 app = dash.Dash(__name__, external_stylesheets=external_stylesheets)
+server = app.server
 app.server.secret_key = 'noah3278'  # You should change this for security reasons
 
 # Define layout
 app.layout = html.Div([
-    html.Img(src='/assets/my_logo.png', height='200px', style={'display':'block', 'margin':'auto'}),  # Logo
+    html.Img(src='/assets/my_logo.png', height='300px', style={'display':'block', 'margin':'auto'}),  # Logo
 
-    html.H1("Comprehensive Stock Analysis Dashboard", style={'textAlign': 'center', 'color': '#2C3E50'}),
+    html.Title("Securities Analysis Dashboard", style={'textAlign': 'center', 'color': '#000000'}),
+    
+    # Button to trigger SEC analysis
+    html.Button('Analyze SEC Filings', id='sec-analysis-button', n_clicks=0),
 
-    html.Label("Stock Tickers (comma-separated):", style={'color': '#34495E', 'fontWeight': 'bold'}),
-    dcc.Input(id='stock-input', value='NVDA, ARM', type='text'),
+    # Container to display the results
+    html.Div(id='sec-analysis-output'),
+
+    html.Label("Stock Tickers (comma-separated):", style={'color': '#34495E', 'fontWeight': 'normal'}),
+    dcc.Input(id='stock-input', value='', type='text'),
 
     html.Label("Date Range:"),
     dcc.DatePickerRange(
         id='date-picker',
         start_date=pd.to_datetime('2023-01-01'),
-        end_date=pd.to_datetime('2023-10-01'),
+        end_date=pd.to_datetime(date.today()),
     ),
 
     dcc.Checklist(
     id='ma-checklist',
-    style={'color': '#34495E', 'fontWeight': 'bold'},
+    style={'color': '#34495E', 'fontWeight': 'normal'},
     options=[
         {'label': 'Show 20-day Moving Average', 'value': '20'},
         {'label': 'Show 50-day Moving Average', 'value': '50'},
@@ -55,16 +62,13 @@ app.layout = html.Div([
         value='price'
     ),
 
-    dcc.Graph(id='stock-plot'),
+    dcc.Loading(
+    id="loading",
+    type="cube",  # 'default', 'circle', or 'cube'
+    children=[dcc.Graph(id='stock-plot')]),
 
-    html.Label("Financial Ratios (First Ticker In List Only):"),
-    dash_table.DataTable(
-        id='table',
-        columns=[{"name": 'Indicator', "id": 'Indicator'}, {"name": 'Value', "id": 'Value'}],
-        data=[]
-    )
-    ], style={'backgroundColor': '#FAF9F6', 'fontFamily': 'Roboto', 'padding': '20px'})
-    
+    ], style={'backgroundColor': '#F8F8F8', 'fontFamily': 'Roboto', 'padding': '20px'})
+
 # Define callbacks for the graph
 @app.callback(
     Output('stock-plot', 'figure'),
@@ -74,7 +78,6 @@ app.layout = html.Div([
      Input('ma-checklist', 'value'),
      Input('plot-type', 'value')]
 )
-
 
 def update_graph(stock_tickers, start_date, end_date, ma_values, plot_type):
     # Split the stock tickers string into a list
@@ -111,7 +114,7 @@ def update_graph(stock_tickers, start_date, end_date, ma_values, plot_type):
             fig.add_trace(go.Scatter(x=stock_data.index, y=stock_data[f"{stock}_signal"], mode='lines', name=f"{stock} Signal Line"))
         else:raise ValueError(f"Unsupported plot_type: {plot_type}")
 
-        
+
 
 
         fig.add_trace(go.Scatter(x=stock_data.index, y=y_value, mode='lines', name=f"{stock} {plot_type.capitalize()}"))
@@ -139,22 +142,25 @@ def check_date_range(start_date, end_date):
         return {"border": "2px solid red"}  # Red border if invalid
     else:
         return {}  # Default style if valid
-
-# Define callbacks for the financial ratios table
+    
 @app.callback(
-    Output('table', 'data'),
-    [Input('stock-input', 'value')]
+    Output('sec-analysis-output', 'children'),
+    [Input('sec-analysis-button', 'n_clicks')],
+    [State('stock-input', 'value')]
 )
-
-def update_table(stock_tickers):
-    first_stock = stock_tickers.split(",")[0].strip()
-    
-    if not validate_ticker(first_stock):
-        return [{"Indicator": "Error", "Value": "Invalid Stock Ticker"}]
-    
-    ratios = fetch_ratios(first_stock)
-    table_data = [{"Indicator": key, "Value": value} for key, value in ratios.items()]
-    return table_data
-
+def update_sec_analysis(n_clicks, stock_input):
+    if n_clicks > 0:
+        stock_list = [stock.strip() for stock in stock_input.split(",")]
+        first_ticker = stock_list[0] if stock_list else None
+        if first_ticker:
+            text_data = fetch_sec_filings(first_ticker)
+            if text_data and not text_data.startswith("No filings found"):
+                sentiment = analyze_sentiment(text_data)
+                return f"Sentiment for {first_ticker}: Polarity = {sentiment.polarity}, Subjectivity = {sentiment.subjectivity}"
+            else:
+                return text_data  # This will display the message from fetch_sec_filings
+        else:
+            return "No ticker provided."
+        
 if __name__ == '__main__':
     app.run_server(debug=True)
