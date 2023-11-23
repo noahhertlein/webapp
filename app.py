@@ -154,13 +154,14 @@ def update_sec_analysis(n_clicks, stock_input):
         first_ticker = stock_list[0] if stock_list else None
         if first_ticker:
             text_data = fetch_sec_filings(first_ticker)
-            if text_data and not text_data.startswith("No filings found"):
-                sentiment = analyze_sentiment(text_data)
-                return f"Sentiment for {first_ticker}: Polarity = {sentiment.polarity}, Subjectivity = {sentiment.subjectivity}"
-            else:
-                return text_data  # This will display the message from fetch_sec_filings
+            if text_data.startswith("Error") or text_data.startswith("No filings") or text_data.startswith("Unable to fetch"):
+                return text_data  # Return the error message from fetch_sec_filings
+            sentiment = analyze_sentiment(text_data)
+            return f"Sentiment for {first_ticker}: Polarity = {sentiment.polarity}, Subjectivity = {sentiment.subjectivity}"
         else:
-            return "No ticker provided."
+            return "No ticker provided."  # Return this message if no ticker is provided
+    else:
+        return "Click the button to analyze SEC filings."  # Return this message if the button has not been clicked
         
 if __name__ == '__main__':
     app.run_server(debug=True)
